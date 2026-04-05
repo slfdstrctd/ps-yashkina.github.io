@@ -920,6 +920,10 @@ a.button.secondary:visited {
   pointer-events: none;
 }
 
+body.values-sorting-active {
+  touch-action: none;
+}
+
 body.values-sorting-active,
 body.values-sorting-active * {
   user-select: none !important;

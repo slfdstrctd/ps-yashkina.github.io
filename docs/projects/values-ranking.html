@@ -68,7 +68,6 @@
 
     const SORTING_BODY_CLASS = "values-sorting-active";
     const POINTER_MOVE_OPTS = { capture: true, passive: true };
-    const TOUCH_MOVE_OPTS = { capture: true, passive: false };
 
     let sortDragLockActive = false;
     let sortSelectionRaf = 0;
@@ -119,7 +118,6 @@
 
       document.addEventListener("selectstart", blockNativeSelection, true);
       document.addEventListener("dragstart", blockNativeSelection, true);
-      document.addEventListener("touchmove", blockNativeSelection, TOUCH_MOVE_OPTS);
       document.addEventListener("mousemove", scheduleSelectionClear, true);
       window.addEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
     }
@@ -139,7 +137,6 @@
 
       document.removeEventListener("selectstart", blockNativeSelection, true);
       document.removeEventListener("dragstart", blockNativeSelection, true);
-      document.removeEventListener("touchmove", blockNativeSelection, TOUCH_MOVE_OPTS);
       document.removeEventListener("mousemove", scheduleSelectionClear, true);
       window.removeEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
 
@@ -197,30 +194,11 @@
       function SortableRowBase({ value: item, listPosition, openDescId, setOpenDescId, prefersFineHover }) {
         const desc = (item?.description || "").trim();
         const hasDesc = desc.length > 0;
-        const nodeRef = useRef(null);
         const [infoHoverFocus, setInfoHoverFocus] = useState(false);
-
-        const setLiRef = (node) => {
-          nodeRef.current = node;
-        };
 
         const touchOpen = Boolean(!prefersFineHover && hasDesc && openDescId === item.id);
         const popoverOpen = Boolean((hasDesc && infoHoverFocus) || touchOpen);
         const cardClass = `rank-item${popoverOpen ? " value-card--info-visible" : ""}`;
-
-        useEffect(() => {
-          if (prefersFineHover || !touchOpen) {
-            return undefined;
-          }
-          const onDoc = (event) => {
-            const el = nodeRef.current;
-            if (el && !el.contains(event.target)) {
-              setOpenDescId(null);
-            }
-          };
-          document.addEventListener("click", onDoc);
-          return () => document.removeEventListener("click", onDoc);
-        }, [touchOpen, prefersFineHover, setOpenDescId]);
 
         const nameForA11y = capitalizeFirstLetter(item?.name ?? "");
         const pos = Number.isFinite(listPosition) ? listPosition : 0;
@@ -228,7 +206,11 @@
 
         return h(
           "li",
-          { ref: setLiRef, className: "ranking-row", "aria-label": rowLabel },
+          {
+            className: "ranking-row",
+            "data-value-id": String(item.id),
+            "aria-label": rowLabel,
+          },
           h(
             "div",
             { className: cardClass },
@@ -327,7 +309,30 @@
           };
         }, [items, openDescId]);
 
+        useEffect(() => {
+          if (prefersFineHover || openDescId == null) {
+            return undefined;
+          }
+
+          const onPointerDownCapture = (event) => {
+            const t = event.target;
+            if (!(t instanceof Element)) {
+              return;
+            }
+            const row = typeof t.closest === "function" ? t.closest(".ranking-row") : null;
+            const rowId = row?.getAttribute("data-value-id");
+            if (rowId === String(openDescId)) {
+              return;
+            }
+            setOpenDescId(null);
+          };
+
+          document.addEventListener("pointerdown", onPointerDownCapture, true);
+          return () => document.removeEventListener("pointerdown", onPointerDownCapture, true);
+        }, [openDescId, prefersFineHover]);
+
         function onSortStart() {
+          setOpenDescId(null);
           beginValuesSortDrag();
         }
 
@@ -375,6 +380,7 @@
             {
               axis: "y",
               distance: 6,
+              useWindowAsScrollContainer: true,
               shouldCancelStart: (event) => {
                 const t = event.target;
                 if (typeof t.closest === "function" && t.closest(".value-info-btn")) {
@@ -385,7 +391,7 @@
               helperClass: "ranking-row sortable-helper",
               helperStyle: { zIndex: 10050, boxSizing: "border-box" },
               helperContainer: () => document.body,
-              transitionDuration: 0,
+              transitionDuration: 200,
               onSortStart,
               onSortEnd,
             },
