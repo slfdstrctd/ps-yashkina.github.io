@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personal Website</title>
+  <meta name="description" content="Personal GitHub Pages website with projects list.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a class="home-link" href="index.html" aria-label="На главную">
+        <svg class="home-link__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 9.5 12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" fill="currentColor"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+  <main class="container">
+    <section class="profile-card">
+      <div class="profile-content">
+        <h1>Дарья Яшкина</h1>
+        <p class="description">
+          Я психолог в подходе <i>Терапия принятия и ответственности</i>.<br>Здесь вы можете найти инструменты для самопознания и развития рефлексии.
+        </p>
+      </div>
+      <img
+        class="profile-photo"
+        src="assets/profile-photo.png"
+        alt="Profile photo"
+      >
+    </section>
+
+    <section class="projects-section">
+      <h2>Проекты</h2>
+      <ul class="projects-catalog">
+        <li>
+          <a class="projects-catalog-item" href="projects/values-check-list.html">
+            <div class="projects-catalog-item__body">
+              <h3 class="projects-catalog-item__title">Определение ценностей</h3>
+              <p class="projects-catalog-item__desc">
+                В&#160;<i>Терапии принятия и&#160;ответственности</i> ценности рассматриваются как&#160;желаемое поведение и&#160;качества, которыми хочет обладать человек.<br>Этот&#160;инструмент поможет Вам осознанно выделить основные ценности, согласно которым Вы сейчас хотите жить.
+              </p>
+            </div>
+            <span class="projects-catalog-item__cta" aria-hidden="true">
+              <svg class="projects-catalog-item__cta-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </a>
+        </li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

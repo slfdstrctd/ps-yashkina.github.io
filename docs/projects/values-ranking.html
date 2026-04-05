@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ранжирование ценностей</title>
+  <meta name="description" content="Rank selected personal values by importance.">
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container site-header-inner">
+      <a class="home-link" href="../index.html" aria-label="На главную">
+        <svg class="home-link__icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 9.5 12 4l9 5.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z" fill="currentColor"/>
+        </svg>
+      </a>
+    </div>
+  </header>
+  <main class="container">
+    <section class="project-card">
+      <h1>Ранжирование ценностей</h1>
+      <p class="description">
+        Зажимайте и&#160;перетаскивайте ценности так, чтобы расставить их в&#160;порядке важности.<br>Для&#160;размышлений о&#160;каждом пункте могут помочь такие вопросы:
+      </p>
+      <ul class="ranking-reflection-bullets">
+        <li>Насколько осмысленной будет моя жизнь, если этого качества не станет?</li>
+        <li>Какой дискомфорт я готов перенести, чтобы быть таким человеком?</li>
+      </ul>
+      <div id="ranking-root" aria-live="polite">
+        <p class="description">Loading ranking…</p>
+      </div>
+      <div class="project-buttons">
+        <a class="button secondary" href="values-check-list.html">Вернуться к&#160;определению ценностей</a>
+        <a class="button" href="values-save-results.html">Сохранить результаты</a>
+      </div>
+    </section>
+  </main>
+  <script type="module">
+    const rootEl = document.getElementById("ranking-root");
+    const STORAGE_KEY = "selectedValuesForRanking";
+
+    function normalizeStoredItems(input) {
+      const asArray = Array.isArray(input) ? input : [];
+      return asArray.map((item, index) => {
+        if (typeof item === "string") {
+          return { id: `${index}:${item}`, name: item, description: "" };
+        }
+        const name = item?.name ?? `Value ${index + 1}`;
+        const description = item?.description ?? "";
+        const id = item?.id ?? `${index}:${name}`;
+        return { id, name, description };
+      });
+    }
+
+    function persistRanking(items) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function moveItemInArray(list, fromIndex, toIndex) {
+      if (fromIndex === toIndex) return list.slice();
+      const next = list.slice();
+      const [moved] = next.splice(fromIndex, 1);
+      if (moved === undefined) return list.slice();
+      next.splice(toIndex, 0, moved);
+      return next;
+    }
+
+    const SORTING_BODY_CLASS = "values-sorting-active";
+    const POINTER_MOVE_OPTS = { capture: true, passive: true };
+    const TOUCH_MOVE_OPTS = { capture: true, passive: false };
+
+    let sortDragLockActive = false;
+    let sortSelectionRaf = 0;
+    let savedDocUserSelect = "";
+    let savedDocWebkitUserSelect = "";
+    let savedDocMozUserSelect = "";
+    let savedBodyUserSelect = "";
+    let savedBodyWebkitUserSelect = "";
+    let savedBodyMozUserSelect = "";
+
+    function blockNativeSelection(event) {
+      event.preventDefault();
+    }
+
+    function clearBrowserSelection() {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        sel.removeAllRanges();
+      }
+    }
+
+    function scheduleSelectionClear() {
+      if (sortSelectionRaf) return;
+      sortSelectionRaf = requestAnimationFrame(() => {
+        sortSelectionRaf = 0;
+        clearBrowserSelection();
+      });
+    }
+
+    function beginValuesSortDrag() {
+      if (sortDragLockActive) return;
+      sortDragLockActive = true;
+      document.body.classList.add(SORTING_BODY_CLASS);
+      const root = document.documentElement;
+      const body = document.body;
+      savedDocUserSelect = root.style.userSelect;
+      savedDocWebkitUserSelect = root.style.webkitUserSelect;
+      savedDocMozUserSelect = root.style.MozUserSelect;
+      savedBodyUserSelect = body.style.userSelect;
+      savedBodyWebkitUserSelect = body.style.webkitUserSelect;
+      savedBodyMozUserSelect = body.style.MozUserSelect;
+      root.style.userSelect = "none";
+      root.style.webkitUserSelect = "none";
+      root.style.MozUserSelect = "none";
+      body.style.userSelect = "none";
+      body.style.webkitUserSelect = "none";
+      body.style.MozUserSelect = "none";
+
+      document.addEventListener("selectstart", blockNativeSelection, true);
+      document.addEventListener("dragstart", blockNativeSelection, true);
+      document.addEventListener("touchmove", blockNativeSelection, TOUCH_MOVE_OPTS);
+      document.addEventListener("mousemove", scheduleSelectionClear, true);
+      window.addEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
+    }
+
+    function endValuesSortDrag() {
+      if (!sortDragLockActive) return;
+      sortDragLockActive = false;
+      document.body.classList.remove(SORTING_BODY_CLASS);
+      const root = document.documentElement;
+      const body = document.body;
+      root.style.userSelect = savedDocUserSelect;
+      root.style.webkitUserSelect = savedDocWebkitUserSelect;
+      root.style.MozUserSelect = savedDocMozUserSelect;
+      body.style.userSelect = savedBodyUserSelect;
+      body.style.webkitUserSelect = savedBodyWebkitUserSelect;
+      body.style.MozUserSelect = savedBodyMozUserSelect;
+
+      document.removeEventListener("selectstart", blockNativeSelection, true);
+      document.removeEventListener("dragstart", blockNativeSelection, true);
+      document.removeEventListener("touchmove", blockNativeSelection, TOUCH_MOVE_OPTS);
+      document.removeEventListener("mousemove", scheduleSelectionClear, true);
+      window.removeEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
+
+      if (sortSelectionRaf) {
+        cancelAnimationFrame(sortSelectionRaf);
+        sortSelectionRaf = 0;
+      }
+      clearBrowserSelection();
+    }
+
+    (async () => {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (!Array.isArray(raw) || raw.length === 0) {
+        rootEl.innerHTML = `
+          <p class="description">
+            No values selected yet. Go back to check list and choose values first.
+          </p>
+        `;
+        return;
+      }
+
+      const RV = "18.3.1";
+      const reactUrl = `https://esm.sh/react@${RV}`;
+      const reactDomClientUrl = `https://esm.sh/react-dom@${RV}/client?deps=react@${RV}`;
+      const sortableHocUrl = `https://esm.sh/react-sortable-hoc@2.0.0?deps=react@${RV},react-dom@${RV}`;
+
+      const React = await import(reactUrl);
+      const ReactDom = await import(reactDomClientUrl);
+      const { sortableContainer, sortableElement } = await import(sortableHocUrl);
+
+      const { useState, useEffect, useLayoutEffect, useMemo, useRef } = React;
+      const { createRoot } = ReactDom;
+      const h = React.createElement;
+
+      function capitalizeFirstLetter(text) {
+        const t = (text || "").trim();
+        if (!t) {
+          return t;
+        }
+        return `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
+      }
+
+      function usePrefersFinePointerHover() {
+        return useMemo(() => {
+          if (typeof window === "undefined") {
+            return true;
+          }
+          return (
+            window.matchMedia("(hover: hover)").matches &&
+            window.matchMedia("(pointer: fine)").matches
+          );
+        }, []);
+      }
+
+      function SortableRowBase({ value: item, listPosition, openDescId, setOpenDescId, prefersFineHover }) {
+        const desc = (item?.description || "").trim();
+        const hasDesc = desc.length > 0;
+        const nodeRef = useRef(null);
+        const [infoHoverFocus, setInfoHoverFocus] = useState(false);
+
+        const setLiRef = (node) => {
+          nodeRef.current = node;
+        };
+
+        const touchOpen = Boolean(!prefersFineHover && hasDesc && openDescId === item.id);
+        const popoverOpen = Boolean((hasDesc && infoHoverFocus) || touchOpen);
+        const cardClass = `rank-item${popoverOpen ? " value-card--info-visible" : ""}`;
+
+        useEffect(() => {
+          if (prefersFineHover || !touchOpen) {
+            return undefined;
+          }
+          const onDoc = (event) => {
+            const el = nodeRef.current;
+            if (el && !el.contains(event.target)) {
+              setOpenDescId(null);
+            }
+          };
+          document.addEventListener("click", onDoc);
+          return () => document.removeEventListener("click", onDoc);
+        }, [touchOpen, prefersFineHover, setOpenDescId]);
+
+        const nameForA11y = capitalizeFirstLetter(item?.name ?? "");
+        const pos = Number.isFinite(listPosition) ? listPosition : 0;
+        const rowLabel = pos > 0 ? `Позиция ${pos}: ${nameForA11y}` : nameForA11y;
+
+        return h(
+          "li",
+          { ref: setLiRef, className: "ranking-row", "aria-label": rowLabel },
+          h(
+            "div",
+            { className: cardClass },
+            h(
+              "div",
+              { className: "rank-item-text" },
+              h("span", { className: "value-name" }, capitalizeFirstLetter(item?.name ?? "")),
+            ),
+            hasDesc
+              ? h(
+                  "button",
+                  {
+                    type: "button",
+                    className: "value-info-btn",
+                    "aria-label": `Show description for ${item?.name ?? "value"}`,
+                    "aria-expanded": touchOpen ? "true" : "false",
+                    onMouseEnter: () => {
+                      setInfoHoverFocus(true);
+                    },
+                    onMouseLeave: () => {
+                      setInfoHoverFocus(false);
+                    },
+                    onFocus: () => {
+                      setInfoHoverFocus(true);
+                    },
+                    onBlur: () => {
+                      setInfoHoverFocus(false);
+                    },
+                    onMouseDown: (event) => {
+                      event.stopPropagation();
+                    },
+                    onPointerDown: (event) => {
+                      event.stopPropagation();
+                    },
+                    onClick: (event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!prefersFineHover) {
+                        setOpenDescId((current) => (current === item.id ? null : item.id));
+                      }
+                    },
+                  },
+                  "i",
+                )
+              : null,
+            hasDesc ? h("p", { className: "value-description" }, capitalizeFirstLetter(desc)) : null,
+          ),
+        );
+      }
+
+      const SortableRow = sortableElement(SortableRowBase);
+
+      function SortableListBase({ children }) {
+        return h("ol", { className: "ranking-list" }, children);
+      }
+
+      const SortableList = sortableContainer(SortableListBase);
+
+      function ValuesRankingApp({ initialItems }) {
+        const [items, setItems] = useState(() => initialItems);
+        const [openDescId, setOpenDescId] = useState(null);
+        const prefersFineHover = usePrefersFinePointerHover();
+        const boardRef = useRef(null);
+
+        useLayoutEffect(() => {
+          const board = boardRef.current;
+          if (!board) return undefined;
+
+          function syncGutterRowHeights() {
+            const gutterLis = board.querySelectorAll(".ranking-rank-gutter > li");
+            const rows = board.querySelectorAll(".ranking-list > .ranking-row");
+            const len = Math.min(gutterLis.length, rows.length);
+            for (let i = 0; i < len; i += 1) {
+              gutterLis[i].style.minHeight = `${rows[i].offsetHeight}px`;
+            }
+            for (let i = len; i < gutterLis.length; i += 1) {
+              gutterLis[i].style.minHeight = "";
+            }
+          }
+
+          syncGutterRowHeights();
+
+          const ro = new ResizeObserver(syncGutterRowHeights);
+          const rows = board.querySelectorAll(".ranking-list > .ranking-row");
+          rows.forEach((row) => {
+            ro.observe(row);
+          });
+
+          window.addEventListener("resize", syncGutterRowHeights);
+          return () => {
+            rows.forEach((row) => {
+              ro.unobserve(row);
+            });
+            ro.disconnect();
+            window.removeEventListener("resize", syncGutterRowHeights);
+          };
+        }, [items, openDescId]);
+
+        function onSortStart() {
+          beginValuesSortDrag();
+        }
+
+        function onSortEnd({ oldIndex, newIndex }) {
+          endValuesSortDrag();
+          setOpenDescId(null);
+
+          if (oldIndex === newIndex) return;
+          if (
+            typeof oldIndex !== "number" ||
+            typeof newIndex !== "number" ||
+            Number.isNaN(oldIndex) ||
+            Number.isNaN(newIndex)
+          ) {
+            return;
+          }
+
+          const from = oldIndex;
+          const to = newIndex;
+          window.setTimeout(() => {
+            setItems((prev) => {
+              if (from < 0 || to < 0 || from >= prev.length || to >= prev.length) {
+                return prev;
+              }
+              const next = moveItemInArray(prev, from, to);
+              if (!Array.isArray(next) || next.length !== prev.length) {
+                return prev;
+              }
+              persistRanking(next);
+              return next;
+            });
+          }, 0);
+        }
+
+        return h(
+          "div",
+          { className: "ranking-board", ref: boardRef },
+          h(
+            "ol",
+            { className: "ranking-rank-gutter", "aria-hidden": "true" },
+            items.map((_item, i) => h("li", { key: `rank-label-${i}` }, `${i + 1}.`)),
+          ),
+          h(
+            SortableList,
+            {
+              axis: "y",
+              distance: 6,
+              shouldCancelStart: (event) => {
+                const t = event.target;
+                if (typeof t.closest === "function" && t.closest(".value-info-btn")) {
+                  return true;
+                }
+                return false;
+              },
+              helperClass: "ranking-row sortable-helper",
+              helperStyle: { zIndex: 10050, boxSizing: "border-box" },
+              helperContainer: () => document.body,
+              transitionDuration: 0,
+              onSortStart,
+              onSortEnd,
+            },
+            items.map((item, index) =>
+              h(SortableRow, {
+                key: String(item.id),
+                index,
+                value: item,
+                listPosition: index + 1,
+                openDescId,
+                setOpenDescId,
+                prefersFineHover,
+              }),
+            ),
+          ),
+        );
+      }
+
+      const initialItems = normalizeStoredItems(raw);
+      createRoot(rootEl).render(h(ValuesRankingApp, { initialItems }));
+
+      document.addEventListener(
+        "selectstart",
+        (ev) => {
+          const t = ev.target;
+          if (typeof t.closest === "function" && t.closest(".ranking-row")) {
+            ev.preventDefault();
+          }
+        },
+        true,
+      );
+      document.addEventListener(
+        "dragstart",
+        (ev) => {
+          const t = ev.target;
+          if (typeof t.closest === "function" && t.closest(".ranking-row")) {
+            ev.preventDefault();
+          }
+        },
+        true,
+      );
+      document.addEventListener(
+        "mousedown",
+        (ev) => {
+          const t = ev.target;
+          if (typeof t.closest === "function" && t.closest(".ranking-row")) {
+            clearBrowserSelection();
+          }
+        },
+        true,
+      );
+    })().catch((error) => {
+      rootEl.innerHTML = `<p class="description">Failed to load ranking UI: ${error.message}</p>`;
+    });
+  </script>
+</body>
+</html>

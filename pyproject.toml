@@ -1,0 +1,13 @@
+[project]
+name = "ps-yashkina-github-io"
+version = "0.1.0"
+description = "Local dev server for GitHub Pages docs site."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+serve-site = "serve:main"
+
+[tool.uv]
+package = false
