@@ -1418,3 +1418,44 @@ body.values-sorting-active ::selection {
     transition: none;
   }
 }
+
+.ranking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ranking-row {
+  list-style: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rank-item {
+  position: relative;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rank-item--dragging {
+  opacity: 0.35;
+}
+
+.rank-item--overlay {
+  opacity: 0.98;
+  transform: translateZ(0);
+  will-change: transform;
+  pointer-events: none;
+}
+
+.values-sorting-active .value-description {
+  display: none !important;
+}
+
+.values-sorting-active .value-info-btn {
+  pointer-events: none;
+}

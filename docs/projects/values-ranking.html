@@ -39,7 +39,7 @@
   <script type="module">
     const rootEl = document.getElementById("ranking-root");
     const STORAGE_KEY = "selectedValuesForRanking";
-
+  
     function normalizeStoredItems(input) {
       const asArray = Array.isArray(input) ? input : [];
       return asArray.map((item, index) => {
@@ -52,11 +52,11 @@
         return { id, name, description };
       });
     }
-
+  
     function persistRanking(items) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     }
-
+  
     function moveItemInArray(list, fromIndex, toIndex) {
       if (fromIndex === toIndex) return list.slice();
       const next = list.slice();
@@ -65,10 +65,9 @@
       next.splice(toIndex, 0, moved);
       return next;
     }
-
+  
     const SORTING_BODY_CLASS = "values-sorting-active";
-    const POINTER_MOVE_OPTS = { capture: true, passive: true };
-
+  
     let sortDragLockActive = false;
     let sortSelectionRaf = 0;
     let savedDocUserSelect = "";
@@ -77,18 +76,18 @@
     let savedBodyUserSelect = "";
     let savedBodyWebkitUserSelect = "";
     let savedBodyMozUserSelect = "";
-
+  
     function blockNativeSelection(event) {
       event.preventDefault();
     }
-
+  
     function clearBrowserSelection() {
       const sel = window.getSelection();
       if (sel && sel.rangeCount > 0) {
         sel.removeAllRanges();
       }
     }
-
+  
     function scheduleSelectionClear() {
       if (sortSelectionRaf) return;
       sortSelectionRaf = requestAnimationFrame(() => {
@@ -96,57 +95,65 @@
         clearBrowserSelection();
       });
     }
-
+  
     function beginValuesSortDrag() {
       if (sortDragLockActive) return;
       sortDragLockActive = true;
+  
       document.body.classList.add(SORTING_BODY_CLASS);
+  
       const root = document.documentElement;
       const body = document.body;
+  
       savedDocUserSelect = root.style.userSelect;
       savedDocWebkitUserSelect = root.style.webkitUserSelect;
       savedDocMozUserSelect = root.style.MozUserSelect;
       savedBodyUserSelect = body.style.userSelect;
       savedBodyWebkitUserSelect = body.style.webkitUserSelect;
       savedBodyMozUserSelect = body.style.MozUserSelect;
+  
       root.style.userSelect = "none";
       root.style.webkitUserSelect = "none";
       root.style.MozUserSelect = "none";
       body.style.userSelect = "none";
       body.style.webkitUserSelect = "none";
       body.style.MozUserSelect = "none";
-
+  
       document.addEventListener("selectstart", blockNativeSelection, true);
       document.addEventListener("dragstart", blockNativeSelection, true);
       document.addEventListener("mousemove", scheduleSelectionClear, true);
-      window.addEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
+      window.addEventListener("pointermove", scheduleSelectionClear, { capture: true, passive: true });
     }
-
+  
     function endValuesSortDrag() {
       if (!sortDragLockActive) return;
       sortDragLockActive = false;
+  
       document.body.classList.remove(SORTING_BODY_CLASS);
+  
       const root = document.documentElement;
       const body = document.body;
+  
       root.style.userSelect = savedDocUserSelect;
       root.style.webkitUserSelect = savedDocWebkitUserSelect;
       root.style.MozUserSelect = savedDocMozUserSelect;
       body.style.userSelect = savedBodyUserSelect;
       body.style.webkitUserSelect = savedBodyWebkitUserSelect;
       body.style.MozUserSelect = savedBodyMozUserSelect;
-
+  
       document.removeEventListener("selectstart", blockNativeSelection, true);
       document.removeEventListener("dragstart", blockNativeSelection, true);
       document.removeEventListener("mousemove", scheduleSelectionClear, true);
-      window.removeEventListener("pointermove", scheduleSelectionClear, POINTER_MOVE_OPTS);
-
+      window.removeEventListener("pointermove", scheduleSelectionClear, { capture: true, passive: true });
+  
       if (sortSelectionRaf) {
         cancelAnimationFrame(sortSelectionRaf);
         sortSelectionRaf = 0;
       }
+  
       clearBrowserSelection();
     }
-
+  
     (async () => {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       if (!Array.isArray(raw) || raw.length === 0) {
@@ -157,62 +164,142 @@
         `;
         return;
       }
-
+  
       const RV = "18.3.1";
       const reactUrl = `https://esm.sh/react@${RV}`;
       const reactDomClientUrl = `https://esm.sh/react-dom@${RV}/client?deps=react@${RV}`;
-      const sortableHocUrl = `https://esm.sh/react-sortable-hoc@2.0.0?deps=react@${RV},react-dom@${RV}`;
-
+  
+      const dndCoreUrl =
+        `https://esm.sh/@dnd-kit/core@6.3.1?deps=react@${RV},react-dom@${RV}`;
+      const dndSortableUrl =
+        `https://esm.sh/@dnd-kit/sortable@10.0.0?deps=react@${RV},react-dom@${RV},@dnd-kit/core@6.3.1`;
+      const dndUtilitiesUrl =
+        `https://esm.sh/@dnd-kit/utilities@3.2.2?deps=react@${RV},react-dom@${RV}`;
+  
       const React = await import(reactUrl);
       const ReactDom = await import(reactDomClientUrl);
-      const { flushSync } = await import(`https://esm.sh/react-dom@${RV}?deps=react@${RV}`);
-      const { sortableContainer, sortableElement } = await import(sortableHocUrl);
-
+      const DndCore = await import(dndCoreUrl);
+      const DndSortable = await import(dndSortableUrl);
+      const DndUtilities = await import(dndUtilitiesUrl);
+  
       const { useState, useEffect, useLayoutEffect, useMemo, useRef } = React;
       const { createRoot } = ReactDom;
       const h = React.createElement;
-
+  
+      const {
+        DndContext,
+        PointerSensor,
+        TouchSensor,
+        MouseSensor,
+        useSensor,
+        useSensors,
+        closestCenter,
+        DragOverlay,
+      } = DndCore;
+  
+      const {
+        SortableContext,
+        useSortable,
+        verticalListSortingStrategy,
+        arrayMove,
+      } = DndSortable;
+  
+      const { CSS } = DndUtilities;
+  
       function capitalizeFirstLetter(text) {
         const t = (text || "").trim();
-        if (!t) {
-          return t;
-        }
+        if (!t) return t;
         return `${t.charAt(0).toUpperCase()}${t.slice(1)}`;
       }
-
+  
       function usePrefersFinePointerHover() {
-        return useMemo(() => {
-          if (typeof window === "undefined") {
-            return true;
-          }
+        const [prefersFineHover, setPrefersFineHover] = useState(() => {
+          if (typeof window === "undefined") return true;
           return (
             window.matchMedia("(hover: hover)").matches &&
             window.matchMedia("(pointer: fine)").matches
           );
+        });
+  
+        useEffect(() => {
+          if (typeof window === "undefined") return undefined;
+  
+          const hoverMq = window.matchMedia("(hover: hover)");
+          const pointerMq = window.matchMedia("(pointer: fine)");
+  
+          const update = () => {
+            setPrefersFineHover(hoverMq.matches && pointerMq.matches);
+          };
+  
+          update();
+          hoverMq.addEventListener?.("change", update);
+          pointerMq.addEventListener?.("change", update);
+  
+          return () => {
+            hoverMq.removeEventListener?.("change", update);
+            pointerMq.removeEventListener?.("change", update);
+          };
         }, []);
+  
+        return prefersFineHover;
       }
-
-      function SortableRowBase({ value: item, listPosition, openDescId, setOpenDescId, prefersFineHover }) {
+  
+      function ValueCard({
+        item,
+        listPosition,
+        openDescId,
+        setOpenDescId,
+        prefersFineHover,
+        dragListeners,
+        dragAttributes,
+        setNodeRef,
+        style,
+        isDragging = false,
+        isOverlay = false,
+      }) {
         const desc = (item?.description || "").trim();
         const hasDesc = desc.length > 0;
+        const nodeRef = useRef(null);
         const [infoHoverFocus, setInfoHoverFocus] = useState(false);
-
+  
+        const combinedRef = (node) => {
+          nodeRef.current = node;
+          if (typeof setNodeRef === "function") {
+            setNodeRef(node);
+          }
+        };
+  
         const touchOpen = Boolean(!prefersFineHover && hasDesc && openDescId === item.id);
-        const popoverOpen = prefersFineHover
-          ? Boolean(hasDesc && infoHoverFocus)
-          : touchOpen;
-        const cardClass = `rank-item${popoverOpen ? " value-card--info-visible" : ""}`;
-
+        const popoverOpen = Boolean((hasDesc && infoHoverFocus) || touchOpen);
+        const cardClass = `rank-item${popoverOpen ? " value-card--info-visible" : ""}${isDragging ? " rank-item--dragging" : ""}${isOverlay ? " rank-item--overlay" : ""}`;
+  
+        useEffect(() => {
+          if (prefersFineHover || !touchOpen) return undefined;
+  
+          const onDoc = (event) => {
+            const el = nodeRef.current;
+            if (el && !el.contains(event.target)) {
+              setOpenDescId(null);
+            }
+          };
+  
+          document.addEventListener("click", onDoc);
+          return () => document.removeEventListener("click", onDoc);
+        }, [touchOpen, prefersFineHover, setOpenDescId]);
+  
         const nameForA11y = capitalizeFirstLetter(item?.name ?? "");
         const pos = Number.isFinite(listPosition) ? listPosition : 0;
         const rowLabel = pos > 0 ? `Позиция ${pos}: ${nameForA11y}` : nameForA11y;
-
+  
         return h(
           "li",
           {
+            ref: combinedRef,
             className: "ranking-row",
-            "data-value-id": String(item.id),
             "aria-label": rowLabel,
+            style,
+            ...dragAttributes,
+            ...dragListeners,
           },
           h(
             "div",
@@ -230,24 +317,13 @@
                     className: "value-info-btn",
                     "aria-label": `Show description for ${item?.name ?? "value"}`,
                     "aria-expanded": touchOpen ? "true" : "false",
-                    onMouseEnter: () => {
-                      setInfoHoverFocus(true);
-                    },
-                    onMouseLeave: () => {
-                      setInfoHoverFocus(false);
-                    },
-                    onFocus: () => {
-                      setInfoHoverFocus(true);
-                    },
-                    onBlur: () => {
-                      setInfoHoverFocus(false);
-                    },
-                    onMouseDown: (event) => {
-                      event.stopPropagation();
-                    },
-                    onPointerDown: (event) => {
-                      event.stopPropagation();
-                    },
+                    onMouseEnter: () => setInfoHoverFocus(true),
+                    onMouseLeave: () => setInfoHoverFocus(false),
+                    onFocus: () => setInfoHoverFocus(true),
+                    onBlur: () => setInfoHoverFocus(false),
+                    onMouseDown: (event) => event.stopPropagation(),
+                    onPointerDown: (event) => event.stopPropagation(),
+                    onTouchStart: (event) => event.stopPropagation(),
                     onClick: (event) => {
                       event.preventDefault();
                       event.stopPropagation();
@@ -263,29 +339,84 @@
           ),
         );
       }
-
-      const SortableRow = sortableElement(SortableRowBase);
-
-      function SortableListBase({ children }) {
-        return h("ol", { className: "ranking-list" }, children);
+  
+      function SortableRow({
+        item,
+        index,
+        openDescId,
+        setOpenDescId,
+        prefersFineHover,
+      }) {
+        const {
+          attributes,
+          listeners,
+          setNodeRef,
+          transform,
+          transition,
+          isDragging,
+        } = useSortable({ id: item.id });
+  
+        const style = {
+          transform: CSS.Transform.toString(transform),
+          transition,
+        };
+  
+        return h(ValueCard, {
+          item,
+          listPosition: index + 1,
+          openDescId,
+          setOpenDescId,
+          prefersFineHover,
+          dragListeners: listeners,
+          dragAttributes: attributes,
+          setNodeRef,
+          style,
+          isDragging,
+        });
       }
-
-      const SortableList = sortableContainer(SortableListBase);
-
+  
       function ValuesRankingApp({ initialItems }) {
         const [items, setItems] = useState(() => initialItems);
         const [openDescId, setOpenDescId] = useState(null);
+        const [activeId, setActiveId] = useState(null);
         const prefersFineHover = usePrefersFinePointerHover();
         const boardRef = useRef(null);
-
+  
+        const activeItem = useMemo(
+          () => items.find((item) => item.id === activeId) ?? null,
+          [items, activeId],
+        );
+  
+        const sensors = useSensors(
+          useSensor(MouseSensor, {
+            activationConstraint: {
+              distance: 6,
+            },
+          }),
+          useSensor(TouchSensor, {
+            activationConstraint: {
+              delay: 180,
+              tolerance: 8,
+            },
+          }),
+          useSensor(PointerSensor, {
+            activationConstraint: prefersFineHover
+              ? { distance: 6 }
+              : { delay: 180, tolerance: 8 },
+          }),
+        );
+  
         useLayoutEffect(() => {
           const board = boardRef.current;
           if (!board) return undefined;
-
+  
           function syncGutterRowHeights() {
+            if (sortDragLockActive) return;
+  
             const gutterLis = board.querySelectorAll(".ranking-rank-gutter > li");
             const rows = board.querySelectorAll(".ranking-list > .ranking-row");
             const len = Math.min(gutterLis.length, rows.length);
+  
             for (let i = 0; i < len; i += 1) {
               gutterLis[i].style.minHeight = `${rows[i].offsetHeight}px`;
             }
@@ -293,93 +424,53 @@
               gutterLis[i].style.minHeight = "";
             }
           }
-
+  
           syncGutterRowHeights();
-
+  
           const ro = new ResizeObserver(syncGutterRowHeights);
           const rows = board.querySelectorAll(".ranking-list > .ranking-row");
-          rows.forEach((row) => {
-            ro.observe(row);
-          });
-
+          rows.forEach((row) => ro.observe(row));
+  
           window.addEventListener("resize", syncGutterRowHeights);
+  
           return () => {
-            rows.forEach((row) => {
-              ro.unobserve(row);
-            });
+            rows.forEach((row) => ro.unobserve(row));
             ro.disconnect();
             window.removeEventListener("resize", syncGutterRowHeights);
           };
-        }, [items, openDescId]);
-
-        useEffect(() => {
-          if (prefersFineHover || openDescId == null) {
-            return undefined;
-          }
-
-          const onPointerDownCapture = (event) => {
-            const t = event.target;
-            if (!(t instanceof Element)) {
-              return;
-            }
-            const row = typeof t.closest === "function" ? t.closest(".ranking-row") : null;
-            const rowId = row?.getAttribute("data-value-id");
-            if (rowId === String(openDescId)) {
-              return;
-            }
-            setOpenDescId(null);
-          };
-
-          document.addEventListener("pointerdown", onPointerDownCapture, true);
-          document.addEventListener("touchstart", onPointerDownCapture, true);
-          return () => {
-            document.removeEventListener("pointerdown", onPointerDownCapture, true);
-            document.removeEventListener("touchstart", onPointerDownCapture, true);
-          };
-        }, [openDescId, prefersFineHover]);
-
-        function updateBeforeSortStart() {
-          flushSync(() => {
-            setOpenDescId(null);
-          });
-          return Promise.resolve();
-        }
-
-        function onSortStart() {
+        }, [items, openDescId, activeId]);
+  
+        function handleDragStart(event) {
           beginValuesSortDrag();
-        }
-
-        function onSortEnd({ oldIndex, newIndex }) {
-          endValuesSortDrag();
           setOpenDescId(null);
-
-          if (oldIndex === newIndex) return;
-          if (
-            typeof oldIndex !== "number" ||
-            typeof newIndex !== "number" ||
-            Number.isNaN(oldIndex) ||
-            Number.isNaN(newIndex)
-          ) {
-            return;
-          }
-
-          const from = oldIndex;
-          const to = newIndex;
-          window.setTimeout(() => {
-            setItems((prev) => {
-              if (from < 0 || to < 0 || from >= prev.length || to >= prev.length) {
-                return prev;
-              }
-              const next = moveItemInArray(prev, from, to);
-              if (!Array.isArray(next) || next.length !== prev.length) {
-                return prev;
-              }
-              persistRanking(next);
-              return next;
-            });
-          }, 0);
+          setActiveId(event.active.id);
         }
-
+  
+        function handleDragEnd(event) {
+          endValuesSortDrag();
+  
+          const { active, over } = event;
+          setActiveId(null);
+  
+          if (!over || active.id === over.id) return;
+  
+          setItems((prev) => {
+            const oldIndex = prev.findIndex((item) => item.id === active.id);
+            const newIndex = prev.findIndex((item) => item.id === over.id);
+  
+            if (oldIndex < 0 || newIndex < 0) return prev;
+  
+            const next = arrayMove(prev, oldIndex, newIndex);
+            persistRanking(next);
+            return next;
+          });
+        }
+  
+        function handleDragCancel() {
+          endValuesSortDrag();
+          setActiveId(null);
+        }
+  
         return h(
           "div",
           { className: "ranking-board", ref: boardRef },
@@ -389,44 +480,62 @@
             items.map((_item, i) => h("li", { key: `rank-label-${i}` }, `${i + 1}.`)),
           ),
           h(
-            SortableList,
+            DndContext,
             {
-              axis: "y",
-              distance: 6,
-              useWindowAsScrollContainer: true,
-              shouldCancelStart: (event) => {
-                const t = event.target;
-                if (typeof t.closest === "function" && t.closest(".value-info-btn")) {
-                  return true;
-                }
-                return false;
-              },
-              helperClass: "ranking-row sortable-helper",
-              helperStyle: { zIndex: 10050, boxSizing: "border-box" },
-              helperContainer: () => document.body,
-              transitionDuration: 200,
-              updateBeforeSortStart,
-              onSortStart,
-              onSortEnd,
+              sensors,
+              collisionDetection: closestCenter,
+              onDragStart: handleDragStart,
+              onDragEnd: handleDragEnd,
+              onDragCancel: handleDragCancel,
             },
-            items.map((item, index) =>
-              h(SortableRow, {
-                key: String(item.id),
-                index,
-                value: item,
-                listPosition: index + 1,
-                openDescId,
-                setOpenDescId,
-                prefersFineHover,
-              }),
+            h(
+              SortableContext,
+              {
+                items: items.map((item) => item.id),
+                strategy: verticalListSortingStrategy,
+              },
+              h(
+                "ol",
+                { className: "ranking-list" },
+                items.map((item, index) =>
+                  h(SortableRow, {
+                    key: String(item.id),
+                    item,
+                    index,
+                    openDescId,
+                    setOpenDescId,
+                    prefersFineHover,
+                  }),
+                ),
+              ),
+            ),
+            h(
+              DragOverlay,
+              {
+                adjustScale: false,
+                dropAnimation: {
+                  duration: 180,
+                  easing: "ease",
+                },
+              },
+              activeItem
+                ? h(ValueCard, {
+                    item: activeItem,
+                    listPosition: items.findIndex((x) => x.id === activeItem.id) + 1,
+                    openDescId: null,
+                    setOpenDescId: () => {},
+                    prefersFineHover,
+                    isOverlay: true,
+                  })
+                : null,
             ),
           ),
         );
       }
-
+  
       const initialItems = normalizeStoredItems(raw);
       createRoot(rootEl).render(h(ValuesRankingApp, { initialItems }));
-
+  
       document.addEventListener(
         "selectstart",
         (ev) => {
@@ -437,6 +546,7 @@
         },
         true,
       );
+  
       document.addEventListener(
         "dragstart",
         (ev) => {
@@ -447,6 +557,7 @@
         },
         true,
       );
+  
       document.addEventListener(
         "mousedown",
         (ev) => {
