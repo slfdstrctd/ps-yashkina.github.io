@@ -130,6 +130,7 @@ createApp({
             'value-card--info-visible': activeInfoId === item.sourceIndex,
             'value-card-locked': checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]
           }"
+          @click="toggleItem(item.sourceIndex)"
         >
           <div class="value-main">
             <label class="value-main-left">
@@ -137,11 +138,12 @@ createApp({
                 type="checkbox"
                 :checked="checkedState[item.sourceIndex]"
                 :disabled="checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]"
+                @click.stop
                 @change="toggleItem(item.sourceIndex)"
               >
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
             </label>
-            <button type="button" class="value-info-btn" @click="activeInfoId = activeInfoId === item.sourceIndex ? null : item.sourceIndex">i</button>
+            <button type="button" class="value-info-btn" @click.stop="activeInfoId = activeInfoId === item.sourceIndex ? null : item.sourceIndex">i</button>
           </div>
           <p class="value-description">{{ capitalizeFirstLetter(item.description) }}</p>
         </article>
