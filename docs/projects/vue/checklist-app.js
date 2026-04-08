@@ -186,7 +186,22 @@ createApp({
       <div class="checklist-actions">
         <button class="button secondary" type="button" @click="clearAll">Очистить все</button>
         <div class="center-action">
-          <button class="button" type="button" @click="proceedToRanking">Перейти к ранжированию</button>
+          <button
+            v-if="currentPage < totalPages - 1"
+            class="button"
+            type="button"
+            @click="goPage(1)"
+          >
+            Далее
+          </button>
+          <button
+            v-else
+            class="button"
+            type="button"
+            @click="proceedToRanking"
+          >
+            Перейти к ранжированию
+          </button>
         </div>
       </div>
 

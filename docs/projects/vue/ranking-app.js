@@ -15,17 +15,6 @@ createApp({
       localStorage.setItem(STORAGE_KEYS.SELECTED_FOR_RANKING, JSON.stringify(items.value));
     }
 
-    function move(index, dir) {
-      const to = index + dir;
-      if (to < 0 || to >= items.value.length) return;
-      const next = items.value.slice();
-      const [x] = next.splice(index, 1);
-      next.splice(to, 0, x);
-      items.value = next;
-      infoId.value = null;
-      persist();
-    }
-
     onMounted(async () => {
       await nextTick();
       if (!rankingListRef.value) return;
@@ -36,7 +25,7 @@ createApp({
         chosenClass: "ranking-chosen",
         dragClass: "ranking-drag",
         forceFallback: false,
-        filter: ".value-info-btn, .rank-move-btn",
+        filter: ".value-info-btn",
         preventOnFilter: false,
         onStart: () => {
           infoId.value = null;
@@ -58,7 +47,6 @@ createApp({
       capitalizeFirstLetter,
       infoId,
       items,
-      move,
       rankingListRef,
     };
   },
@@ -86,8 +74,6 @@ createApp({
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
             </div>
             <div class="rank-controls">
-              <button class="button secondary rank-move-btn" type="button" :disabled="i===0" @click="move(i, -1)">↑</button>
-              <button class="button secondary rank-move-btn" type="button" :disabled="i===items.length-1" @click="move(i, 1)">↓</button>
               <button class="value-info-btn" type="button" @click="infoId = infoId === item.id ? null : item.id">i</button>
             </div>
             <p class="value-description">{{ capitalizeFirstLetter(item.description) }}</p>
