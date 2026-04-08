@@ -1,0 +1,177 @@
+.project-card {
+  width: min(100%, 1100px);
+  margin-inline: auto;
+}
+
+.values-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.value-card {
+  padding: 0.875rem;
+  border: 1px solid rgba(120, 120, 140, 0.25);
+  border-radius: 14px;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.value-main,
+.rank-item,
+.rank-item-text,
+.rank-controls,
+.values-preview-heading-row {
+  display: flex;
+  align-items: center;
+}
+
+.value-main,
+.rank-item {
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.value-main-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.value-name {
+  overflow-wrap: anywhere;
+}
+
+.value-info-btn {
+  inline-size: 2rem;
+  block-size: 2rem;
+  border-radius: 999px;
+}
+
+.value-description {
+  margin-top: 0.5rem;
+  display: none;
+}
+
+.value-card--info-visible .value-description {
+  display: block;
+}
+
+.value-card-locked {
+  opacity: 0.6;
+}
+
+.rank-controls {
+  gap: 0.35rem;
+}
+
+.rank-index {
+  min-width: 2rem;
+}
+
+.rank-move-btn {
+  min-width: 2.2rem;
+}
+
+.ranking-list-vue {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.ranking-row {
+  margin: 0;
+  cursor: grab;
+}
+
+.ranking-row:active {
+  cursor: grabbing;
+}
+
+.rank-item--dragging {
+  opacity: 0.65;
+}
+
+.rank-item {
+  padding: 0.8rem;
+  border: 1px solid rgba(120, 120, 140, 0.28);
+  border-radius: 14px;
+  background: #fff;
+  flex-wrap: wrap;
+}
+
+.values-final-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.color-preset-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.color-preset-btn,
+.color-theme-swap {
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border: 1px solid rgba(100, 100, 120, 0.35);
+  border-radius: 10px;
+}
+
+.final-preview-image {
+  border: 1px solid rgba(120, 120, 140, 0.25);
+  border-radius: 14px;
+  padding: 0.75rem;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.final-preview-png {
+  width: 100%;
+  max-width: 540px;
+  height: auto;
+}
+
+.project-buttons,
+.checklist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+@media (min-width: 700px) {
+  .values-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .values-final-layout {
+    grid-template-columns: minmax(260px, 340px) 1fr;
+    align-items: start;
+  }
+}
+
+@media (min-width: 1024px) {
+  .values-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
