@@ -1,4 +1,5 @@
-import { createApp, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
+import { createApp, nextTick, onMounted, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
+import Sortable from "https://esm.sh/sortablejs@1.15.2";
 import { STORAGE_KEYS, capitalizeFirstLetter, normalizeStoredItems } from "./shared.js";
 
 createApp({
@@ -7,7 +8,8 @@ createApp({
       normalizeStoredItems(JSON.parse(localStorage.getItem(STORAGE_KEYS.SELECTED_FOR_RANKING) || "[]")),
     );
     const infoId = ref(null);
-    const draggingIndex = ref(null);
+    const rankingListRef = ref(null);
+    let sortable = null;
 
     function persist() {
       localStorage.setItem(STORAGE_KEYS.SELECTED_FOR_RANKING, JSON.stringify(items.value));
@@ -24,51 +26,38 @@ createApp({
       persist();
     }
 
-    function onDragStart(event, index) {
-      draggingIndex.value = index;
-      infoId.value = null;
-      if (event.dataTransfer) {
-        event.dataTransfer.effectAllowed = "move";
-        event.dataTransfer.setData("text/plain", String(index));
-      }
-    }
-
-    function onDragOver(event) {
-      event.preventDefault();
-      if (event.dataTransfer) {
-        event.dataTransfer.dropEffect = "move";
-      }
-    }
-
-    function onDrop(event, toIndex) {
-      event.preventDefault();
-      const fromIndex = draggingIndex.value;
-      draggingIndex.value = null;
-      infoId.value = null;
-      if (fromIndex === null || fromIndex === toIndex) return;
-      if (fromIndex < 0 || fromIndex >= items.value.length) return;
-      const next = items.value.slice();
-      const [x] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, x);
-      items.value = next;
-      persist();
-    }
-
-    function onDragEnd() {
-      draggingIndex.value = null;
-      infoId.value = null;
-    }
+    onMounted(async () => {
+      await nextTick();
+      if (!rankingListRef.value) return;
+      sortable = Sortable.create(rankingListRef.value, {
+        animation: 170,
+        easing: "cubic-bezier(0.2, 0, 0, 1)",
+        ghostClass: "ranking-ghost",
+        chosenClass: "ranking-chosen",
+        dragClass: "ranking-drag",
+        forceFallback: false,
+        onStart: () => {
+          infoId.value = null;
+        },
+        onEnd: (evt) => {
+          infoId.value = null;
+          const { oldIndex, newIndex } = evt;
+          if (oldIndex == null || newIndex == null || oldIndex === newIndex) return;
+          const next = items.value.slice();
+          const [moved] = next.splice(oldIndex, 1);
+          next.splice(newIndex, 0, moved);
+          items.value = next;
+          persist();
+        },
+      });
+    });
 
     return {
       capitalizeFirstLetter,
-      draggingIndex,
       infoId,
       items,
       move,
-      onDragEnd,
-      onDragOver,
-      onDragStart,
-      onDrop,
+      rankingListRef,
     };
   },
   template: `
@@ -83,18 +72,13 @@ createApp({
       </ul>
 
       <div v-if="items.length === 0" class="description">Сначала выберите ценности в предыдущем шаге.</div>
-      <ol v-else class="ranking-list ranking-list-vue">
+      <ol v-else ref="rankingListRef" class="ranking-list ranking-list-vue">
         <li
           v-for="(item, i) in items"
           :key="item.id"
           class="ranking-row"
-          draggable="true"
-          @dragstart="onDragStart($event, i)"
-          @dragover="onDragOver"
-          @drop="onDrop($event, i)"
-          @dragend="onDragEnd"
         >
-          <article class="rank-item" :class="{ 'value-card--info-visible': infoId === item.id, 'rank-item--dragging': draggingIndex === i }">
+          <article class="rank-item" :class="{ 'value-card--info-visible': infoId === item.id }">
             <div class="rank-item-text">
               <strong class="rank-index">{{ i + 1 }}.</strong>
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
