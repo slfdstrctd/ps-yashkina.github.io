@@ -44,6 +44,17 @@ createApp({
       persist();
     }
 
+    function onCardClick(index, event) {
+      if (event?.target?.closest?.(".value-info-btn")) return;
+      toggleItem(index);
+    }
+
+    function onCheckboxClick(index, event) {
+      event.preventDefault();
+      event.stopPropagation();
+      toggleItem(index);
+    }
+
     function goPage(delta) {
       const next = Math.min(totalPages.value - 1, Math.max(0, currentPage.value + delta));
       currentPage.value = next;
@@ -99,6 +110,8 @@ createApp({
       pageItems,
       proceedToRanking,
       showSelectionWarning,
+      onCardClick,
+      onCheckboxClick,
       toggleItem,
       totalPages,
     };
@@ -130,7 +143,7 @@ createApp({
             'value-card--info-visible': activeInfoId === item.sourceIndex,
             'value-card-locked': checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]
           }"
-          @click="toggleItem(item.sourceIndex)"
+          @click="onCardClick(item.sourceIndex, $event)"
         >
           <div class="value-main">
             <label class="value-main-left">
@@ -138,7 +151,7 @@ createApp({
                 type="checkbox"
                 :checked="checkedState[item.sourceIndex]"
                 :disabled="checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]"
-                @click.prevent
+                @click="onCheckboxClick(item.sourceIndex, $event)"
               >
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
             </label>

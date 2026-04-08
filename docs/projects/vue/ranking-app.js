@@ -36,6 +36,8 @@ createApp({
         chosenClass: "ranking-chosen",
         dragClass: "ranking-drag",
         forceFallback: false,
+        filter: ".value-info-btn, .rank-move-btn",
+        preventOnFilter: false,
         onStart: () => {
           infoId.value = null;
         },
