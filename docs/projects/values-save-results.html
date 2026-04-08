@@ -21,7 +21,7 @@
     <section class="project-card">
       <h1>Сохранить результат</h1>
       <p class="description">
-        Выберите цвет фона и&#160;текста.<br>Вы можете сохранить свои&#160;результаты в&#160;формате PNG и&#160;PDF.
+        Выберите цвет фона и&#160;текста (вы можете менять их местами).<br>Вы можете сохранить свои&#160;результаты в&#160;формате PNG и&#160;PDF.
       </p>
 
       <div class="values-final-layout">
@@ -71,7 +71,7 @@
           </svg>
         </button>
         -->
-        <button id="share-pdf" class="button" type="button" aria-label="Поделиться">Поделиться</button>
+        <!-- <button id="share-pdf" class="button" type="button" aria-label="Поделиться PDF">Поделиться</button> -->
       </div>
     </section>
   </main>
@@ -919,7 +919,7 @@
 
     document.getElementById("save-png").addEventListener("click", saveAsPng);
     document.getElementById("save-pdf").addEventListener("click", saveAsPdf);
-    document.getElementById("share-pdf").addEventListener("click", shareAsPdf);
+    // document.getElementById("share-pdf").addEventListener("click", shareAsPdf);
 
     function initPage() {
       styleState.backgroundColor = normalizeHex(styleState.backgroundColor, "#ffffff");
