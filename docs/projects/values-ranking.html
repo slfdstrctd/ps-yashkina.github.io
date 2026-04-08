@@ -448,6 +448,7 @@
   
         function handleDragEnd(event) {
           endValuesSortDrag();
+          setOpenDescId(null);
   
           const { active, over } = event;
           setActiveId(null);
@@ -468,6 +469,7 @@
   
         function handleDragCancel() {
           endValuesSortDrag();
+          setOpenDescId(null);
           setActiveId(null);
         }
   
