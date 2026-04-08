@@ -396,13 +396,13 @@
           useSensor(TouchSensor, {
             activationConstraint: {
               delay: 120,
-              tolerance: 8,
+              tolerance: 14,
             },
           }),
           useSensor(PointerSensor, {
             activationConstraint: prefersFineHover
               ? { distance: 6 }
-              : { delay: 120, tolerance: 8 },
+              : { delay: 120, tolerance: 14 },
           }),
         );
   
