@@ -260,6 +260,7 @@
         const desc = (item?.description || "").trim();
         const hasDesc = desc.length > 0;
         const nodeRef = useRef(null);
+        const lastInfoToggleTsRef = useRef(0);
         const [infoHoverFocus, setInfoHoverFocus] = useState(false);
   
         const combinedRef = (node) => {
@@ -272,6 +273,16 @@
         const touchOpen = Boolean(!prefersFineHover && hasDesc && openDescId === item.id);
         const popoverOpen = Boolean((hasDesc && infoHoverFocus) || touchOpen);
         const cardClass = `rank-item${popoverOpen ? " value-card--info-visible" : ""}${isDragging ? " rank-item--dragging" : ""}${isOverlay ? " rank-item--overlay" : ""}`;
+
+        function toggleTouchDescription(event) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (prefersFineHover) return;
+          const now = Date.now();
+          if (now - lastInfoToggleTsRef.current < 350) return;
+          lastInfoToggleTsRef.current = now;
+          setOpenDescId((current) => (current === item.id ? null : item.id));
+        }
   
         useEffect(() => {
           if (prefersFineHover || !touchOpen) return undefined;
@@ -283,8 +294,13 @@
             }
           };
   
-          document.addEventListener("click", onDoc);
-          return () => document.removeEventListener("click", onDoc);
+          // Use pointer/touch down capture to close reliably on mobile.
+          document.addEventListener("pointerdown", onDoc, true);
+          document.addEventListener("touchstart", onDoc, true);
+          return () => {
+            document.removeEventListener("pointerdown", onDoc, true);
+            document.removeEventListener("touchstart", onDoc, true);
+          };
         }, [touchOpen, prefersFineHover, setOpenDescId]);
   
         const nameForA11y = capitalizeFirstLetter(item?.name ?? "");
@@ -322,14 +338,8 @@
                     onFocus: () => setInfoHoverFocus(true),
                     onBlur: () => setInfoHoverFocus(false),
                     onMouseDown: (event) => event.stopPropagation(),
-                    onTouchStart: (event) => event.stopPropagation(),
-                    onPointerDown: (event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (!prefersFineHover) {
-                        setOpenDescId((current) => (current === item.id ? null : item.id));
-                      }
-                    },
+                    onTouchStart: toggleTouchDescription,
+                    onPointerDown: toggleTouchDescription,
                     onClick: (event) => {
                       event.preventDefault();
                       event.stopPropagation();
