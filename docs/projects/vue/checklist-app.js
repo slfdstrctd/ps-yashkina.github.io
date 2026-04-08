@@ -133,7 +133,7 @@ createApp({
           @click="toggleItem(item.sourceIndex)"
         >
           <div class="value-main">
-            <label class="value-main-left">
+            <label class="value-main-left" @click.stop>
               <input
                 type="checkbox"
                 :checked="checkedState[item.sourceIndex]"
