@@ -10,6 +10,8 @@
 }
 
 .value-card {
+  display: grid;
+  row-gap: 0;
   padding: 0.875rem;
   border: 1px solid rgba(120, 120, 140, 0.25);
   border-radius: 14px;
@@ -50,12 +52,20 @@
 }
 
 .value-description {
-  margin-top: 0.5rem;
-  display: none;
+  margin: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding-top: 0;
+  border-top: 0 solid rgba(120, 120, 140, 0.18);
+  transition: max-height 0.2s ease, opacity 0.2s ease, padding-top 0.2s ease, border-top-width 0.2s ease;
 }
 
 .value-card--info-visible .value-description {
-  display: block;
+  max-height: 10rem;
+  opacity: 1;
+  padding-top: 0.55rem;
+  border-top-width: 1px;
 }
 
 .value-card-locked {

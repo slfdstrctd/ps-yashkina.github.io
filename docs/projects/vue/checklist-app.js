@@ -133,13 +133,12 @@ createApp({
           @click="toggleItem(item.sourceIndex)"
         >
           <div class="value-main">
-            <label class="value-main-left" @click.stop>
+            <label class="value-main-left">
               <input
                 type="checkbox"
                 :checked="checkedState[item.sourceIndex]"
                 :disabled="checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]"
-                @click.stop
-                @change="toggleItem(item.sourceIndex)"
+                @click.prevent
               >
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
             </label>
