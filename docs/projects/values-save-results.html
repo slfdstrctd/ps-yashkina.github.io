@@ -58,6 +58,7 @@
         <a class="button secondary" href="values-ranking.html">Вернуться к&#160;ранжированию</a>
         <button id="save-jpg" class="button" type="button">Сохранить JPG</button>
         <button id="save-pdf" class="button" type="button">Сохранить PDF</button>
+        <!--
         <button id="share-jpg" class="button icon-button icon-button-lg" type="button" aria-label="Отправить JPG" title="Отправить JPG">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
             <path
@@ -69,12 +70,13 @@
             />
           </svg>
         </button>
+        -->
+        <button id="share-pdf" class="button" type="button" aria-label="Поделиться">Поделиться</button>
       </div>
     </section>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
   <script>
     const TELEGRAM_FOOTER_TEXT = "Мой телеграм-канал: t.me/banalinsight";
     const TELEGRAM_FOOTER_URL = "https://t.me/banalinsight";
@@ -118,15 +120,8 @@
     );
 
     const hasPdfLib = typeof window.PDFLib !== "undefined";
-    const hasPdfJs = typeof window.pdfjsLib !== "undefined";
-
-    if (hasPdfJs) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
-    }
 
     let cachedPdfBytes = null;
-    let cachedPreviewCanvas = null;
     let cachedSourceCanvas = null;
     let pdfFooterLinkRectCanvas = null;
 
@@ -282,7 +277,6 @@
 
     function invalidateRenderCaches() {
       cachedPdfBytes = null;
-      cachedPreviewCanvas = null;
       cachedSourceCanvas = null;
       pdfFooterLinkRectCanvas = null;
     }
@@ -731,34 +725,11 @@
       return cachedPdfBytes;
     }
 
-    async function renderPdfToCanvas(pdfBytes, scale = 3) {
-      if (!hasPdfJs) {
-        throw new Error("PDF.js failed to load for preview rendering.");
-      }
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(pdfBytes) });
-      const pdf = await loadingTask.promise;
-      const firstPage = await pdf.getPage(1);
-      const viewport = firstPage.getViewport({ scale });
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      context.imageSmoothingEnabled = true;
-      context.imageSmoothingQuality = "high";
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      await firstPage.render({ canvasContext: context, viewport }).promise;
-      return canvas;
-    }
-
-    async function ensurePreviewCanvas() {
-      if (cachedPreviewCanvas) {
-        return cachedPreviewCanvas;
-      }
-      const pdfBytes = await buildPdfBytesFromMarkdown();
-      if (!pdfBytes) {
+    async function ensureJpegSourceCanvas() {
+      if (selectedValues.length === 0) {
         return null;
       }
-      cachedPreviewCanvas = await renderPdfToCanvas(pdfBytes, 3.5);
-      return cachedPreviewCanvas;
+      return buildSourceCanvas();
     }
 
     function setPreviewLoading(isLoading) {
@@ -789,7 +760,7 @@
       try {
         setPreviewLoading(true);
         target.innerHTML = "";
-        const canvas = await ensurePreviewCanvas();
+        const canvas = await ensureJpegSourceCanvas();
         if (!canvas) {
           setPreviewLoading(false);
           return;
@@ -809,7 +780,7 @@
     async function saveAsJpg() {
       try {
         invalidateRenderCaches();
-        const canvas = await ensurePreviewCanvas();
+        const canvas = await ensureJpegSourceCanvas();
         if (!canvas) {
           return;
         }
@@ -843,36 +814,30 @@
       }
     }
 
-    async function shareAsJpg() {
+    async function shareAsPdf() {
       try {
         invalidateRenderCaches();
-        const canvas = await ensurePreviewCanvas();
-        if (!canvas) {
+        const pdfBytes = await buildPdfBytesFromMarkdown();
+        if (!pdfBytes) {
           return;
         }
-        canvas.toBlob(async (blob) => {
-          if (!blob) {
-            return;
-          }
-          const file = new File([blob], "values-results.jpg", { type: "image/jpeg" });
-          const shareText = "check my values check list i got on the website";
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+        const file = new File([blob], "values-results.pdf", { type: "application/pdf" });
+        const shareText = "";
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              text: shareText,
-              files: [file],
-            });
-            return;
-          }
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            text: shareText,
+            files: [file],
+          });
+          return;
+        }
 
-          alert("Отправка файла недоступна на этом устройстве. Будет загружен JPG.");
-          const link = document.createElement("a");
-          link.download = "values-results.jpg";
-          link.href = URL.createObjectURL(blob);
-          link.click();
-        }, "image/jpeg", 0.95);
+        alert(
+          "Поделиться файлом с этой страницы на этом устройстве нельзя. Сохраните PDF или JPG",
+        );
       } catch (error) {
-        alert(`Невозможно отправить JPG: ${error.message}`);
+        alert(`Невозможно поделиться PDF: ${error.message}`);
       }
     }
 
@@ -954,7 +919,7 @@
 
     document.getElementById("save-jpg").addEventListener("click", saveAsJpg);
     document.getElementById("save-pdf").addEventListener("click", saveAsPdf);
-    document.getElementById("share-jpg").addEventListener("click", shareAsJpg);
+    document.getElementById("share-pdf").addEventListener("click", shareAsPdf);
 
     function initPage() {
       styleState.backgroundColor = normalizeHex(styleState.backgroundColor, "#ffffff");
