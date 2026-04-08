@@ -322,14 +322,18 @@
                     onFocus: () => setInfoHoverFocus(true),
                     onBlur: () => setInfoHoverFocus(false),
                     onMouseDown: (event) => event.stopPropagation(),
-                    onPointerDown: (event) => event.stopPropagation(),
                     onTouchStart: (event) => event.stopPropagation(),
-                    onClick: (event) => {
+                    onPointerDown: (event) => {
                       event.preventDefault();
                       event.stopPropagation();
                       if (!prefersFineHover) {
                         setOpenDescId((current) => (current === item.id ? null : item.id));
                       }
+                    },
+                    onClick: (event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      // On mobile we toggle on pointerdown; click may also fire and would double-toggle.
                     },
                   },
                   "i",
