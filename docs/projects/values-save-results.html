@@ -21,7 +21,7 @@
     <section class="project-card">
       <h1>Сохранить результат</h1>
       <p class="description">
-        Выберите цвет фона и&#160;текста.<br>Вы можете сохранить свои&#160;результаты в&#160;формате JPG и&#160;PDF.
+        Выберите цвет фона и&#160;текста.<br>Вы можете сохранить свои&#160;результаты в&#160;формате PNG и&#160;PDF.
       </p>
 
       <div class="values-final-layout">
@@ -56,10 +56,10 @@
 
       <div class="project-buttons">
         <a class="button secondary" href="values-ranking.html">Вернуться к&#160;ранжированию</a>
-        <button id="save-jpg" class="button" type="button">Сохранить JPG</button>
+        <button id="save-png" class="button" type="button">Сохранить PNG</button>
         <button id="save-pdf" class="button" type="button">Сохранить PDF</button>
         <!--
-        <button id="share-jpg" class="button icon-button icon-button-lg" type="button" aria-label="Отправить JPG" title="Отправить JPG">
+        <button id="share-jpg" class="button icon-button icon-button-lg" type="button" aria-label="Отправить PNG" title="Отправить PNG">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" aria-hidden="true">
             <path
               d="M5 18h14M5 18v-5M19 18v-5M12 14V6m-3 3 3-3 3 3"
@@ -283,7 +283,7 @@
 
     function refreshPreview() {
       invalidateRenderCaches();
-      return renderJpgPreview();
+      return renderPngPreview();
     }
 
     async function drawStarSprites(ctx, width, height, bgHex, m) {
@@ -725,7 +725,7 @@
       return cachedPdfBytes;
     }
 
-    async function ensureJpegSourceCanvas() {
+    async function ensurePngSourceCanvas() {
       if (selectedValues.length === 0) {
         return null;
       }
@@ -749,7 +749,7 @@
       }
     }
 
-    async function renderJpgPreview() {
+    async function renderPngPreview() {
       const target = document.getElementById("final-preview-image");
       if (selectedValues.length === 0) {
         setPreviewLoading(false);
@@ -760,15 +760,15 @@
       try {
         setPreviewLoading(true);
         target.innerHTML = "";
-        const canvas = await ensureJpegSourceCanvas();
+        const canvas = await ensurePngSourceCanvas();
         if (!canvas) {
           setPreviewLoading(false);
           return;
         }
         const image = document.createElement("img");
-        image.className = "final-preview-jpg";
+        image.className = "final-preview-png";
         image.alt = "Предпросмотр списка ценностей";
-        image.src = canvas.toDataURL("image/jpeg", 1.0);
+        image.src = canvas.toDataURL("image/png");
         target.appendChild(image);
         setPreviewLoading(false);
       } catch (error) {
@@ -777,19 +777,19 @@
       }
     }
 
-    async function saveAsJpg() {
+    async function saveAsPng() {
       try {
         invalidateRenderCaches();
-        const canvas = await ensureJpegSourceCanvas();
+        const canvas = await ensurePngSourceCanvas();
         if (!canvas) {
           return;
         }
         const link = document.createElement("a");
-        link.download = "values-results.jpg";
-        link.href = canvas.toDataURL("image/jpeg", 1.0);
+        link.download = "values-results.png";
+        link.href = canvas.toDataURL("image/png");
         link.click();
       } catch (error) {
-        alert(`Невозможно сохранить JPG: ${error.message}`);
+        alert(`Невозможно сохранить PNG: ${error.message}`);
       }
     }
 
@@ -834,7 +834,7 @@
         }
 
         alert(
-          "Поделиться файлом с этой страницы на этом устройстве нельзя. Сохраните PDF или JPG",
+          "Поделиться файлом с этой страницы на этом устройстве нельзя. Сохраните PDF кнопкой «Сохранить PDF» или PNG кнопкой «Сохранить PNG».",
         );
       } catch (error) {
         alert(`Невозможно поделиться PDF: ${error.message}`);
@@ -917,7 +917,7 @@
     }
     */
 
-    document.getElementById("save-jpg").addEventListener("click", saveAsJpg);
+    document.getElementById("save-png").addEventListener("click", saveAsPng);
     document.getElementById("save-pdf").addEventListener("click", saveAsPdf);
     document.getElementById("share-pdf").addEventListener("click", shareAsPdf);
 
@@ -926,7 +926,7 @@
       styleState.textColor = normalizeHex(styleState.textColor, "#000000");
       initThemePresets();
       // renderDecorations();
-      renderJpgPreview();
+      renderPngPreview();
     }
 
     document.getElementById("theme-swap-btn").addEventListener("click", () => {
