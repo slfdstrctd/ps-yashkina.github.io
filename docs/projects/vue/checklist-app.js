@@ -1,4 +1,4 @@
-import { createApp, computed, onMounted, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
+import { createApp, computed, onMounted, onUnmounted, ref } from "https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js";
 import { LIMITS, STORAGE_KEYS, capitalizeFirstLetter } from "./shared.js";
 
 createApp({
@@ -9,6 +9,7 @@ createApp({
     const hasReachedLastPage = ref(false);
     const activeInfoId = ref(null);
     const showSelectionWarning = ref(false);
+    let closeInfoOnOutsideClick = null;
 
     const totalPages = computed(() =>
       Math.max(1, Math.ceil(values.value.length / LIMITS.ITEMS_PER_PAGE)),
@@ -46,22 +47,27 @@ createApp({
 
     function onCardClick(index, event) {
       if (event?.target?.closest?.(".value-info-btn")) return;
+      activeInfoId.value = null;
       toggleItem(index);
     }
 
-    function onCheckboxClick(index, event) {
-      event.preventDefault();
-      event.stopPropagation();
-      toggleItem(index);
+    function onCheckboxChange(index, event) {
+      activeInfoId.value = null;
+      const nextChecked = Boolean(event?.target?.checked);
+      if (nextChecked && !checkedState.value[index] && checkedCount.value >= LIMITS.MAX_CHECKED) {
+        event.target.checked = false;
+        return;
+      }
+      checkedState.value[index] = nextChecked;
+      persist();
     }
 
     function goPage(delta) {
+      activeInfoId.value = null;
       const next = Math.min(totalPages.value - 1, Math.max(0, currentPage.value + delta));
       currentPage.value = next;
-      if (next === totalPages.value - 1) {
-        hasReachedLastPage.value = true;
-        persist();
-      }
+      if (next === totalPages.value - 1) hasReachedLastPage.value = true;
+      persist();
     }
 
     function clearAll() {
@@ -95,6 +101,21 @@ createApp({
         Array.isArray(stored) && stored.length === values.value.length
           ? stored.map(Boolean)
           : new Array(values.value.length).fill(false);
+
+      closeInfoOnOutsideClick = (event) => {
+        if (!activeInfoId.value && activeInfoId.value !== 0) return;
+        const target = event?.target;
+        if (!target?.closest?.(".value-card")) {
+          activeInfoId.value = null;
+        }
+      };
+      document.addEventListener("pointerdown", closeInfoOnOutsideClick, true);
+    });
+
+    onUnmounted(() => {
+      if (closeInfoOnOutsideClick) {
+        document.removeEventListener("pointerdown", closeInfoOnOutsideClick, true);
+      }
     });
 
     return {
@@ -111,7 +132,7 @@ createApp({
       proceedToRanking,
       showSelectionWarning,
       onCardClick,
-      onCheckboxClick,
+      onCheckboxChange,
       toggleItem,
       totalPages,
     };
@@ -146,15 +167,16 @@ createApp({
           @click="onCardClick(item.sourceIndex, $event)"
         >
           <div class="value-main">
-            <label class="value-main-left">
+            <div class="value-main-left">
               <input
                 type="checkbox"
                 :checked="checkedState[item.sourceIndex]"
                 :disabled="checkedCount >= LIMITS.MAX_CHECKED && !checkedState[item.sourceIndex]"
-                @click="onCheckboxClick(item.sourceIndex, $event)"
+                @click.stop
+                @change="onCheckboxChange(item.sourceIndex, $event)"
               >
               <span class="value-name">{{ capitalizeFirstLetter(item.name) }}</span>
-            </label>
+            </div>
             <button type="button" class="value-info-btn" @click.stop="activeInfoId = activeInfoId === item.sourceIndex ? null : item.sourceIndex">i</button>
           </div>
           <p class="value-description">{{ capitalizeFirstLetter(item.description) }}</p>
@@ -163,7 +185,7 @@ createApp({
 
       <div class="checklist-actions">
         <button class="button secondary" type="button" @click="clearAll">Очистить все</button>
-        <div class="center-action" :class="{ 'is-hidden': !hasReachedLastPage }" :hidden="!hasReachedLastPage">
+        <div class="center-action">
           <button class="button" type="button" @click="proceedToRanking">Перейти к ранжированию</button>
         </div>
       </div>
